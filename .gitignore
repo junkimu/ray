@@ -1,0 +1,7 @@
+.DS_Store
+*.ppm
+# ignore objects and archives
+*.[oa]
+
+#ignore main executable
+ray

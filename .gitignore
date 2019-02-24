@@ -2,6 +2,8 @@
 *.ppm
 # ignore objects and archives
 *.[oa]
+*.obj
 
 #ignore main executable
 ray
+ray.exe

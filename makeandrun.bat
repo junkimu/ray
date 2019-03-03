@@ -3,7 +3,7 @@
 
 @CD /D %~dp0
 
-DEL ray.exe
+DEL ray.exe output.png output.ppm
 cl main.cpp stb_image_write.cpp /W4 /EHsc /link /out:ray.exe
 IF NOT EXIST ray.exe (
   PAUSE

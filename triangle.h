@@ -5,7 +5,9 @@
 class triangle: public hitable {
     public:
         triangle() {}
-        triangle(vec3 v0, vec3 v1, vec3 v2, vec3 normal): m_vertex0(v0), m_vertex1(v1), m_vertex2(v2), m_normal(normal) {}
+        triangle(vec3 v0, vec3 v1, vec3 v2, vec3 normal): m_vertex0(v0), m_vertex1(v1), m_vertex2(v2), m_normal(normal) {
+            m_normal.make_unit_vector();
+        }
         virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const;
         vec3 m_vertex0;
         vec3 m_vertex1;

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-cc main.cpp -o ray -lc++ && ./ray >> output.ppm
+cc stb_image_write.cpp main.cpp -o ray -lc++ && ./ray > output.ppm

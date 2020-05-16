@@ -48,18 +48,26 @@ vec3 random_in_unit_sphere() {
   return p;
 }
 
-vec3 color(const ray& r, hitable* world) {
+vec3 random_in_hemisphere(const vec3& normal) {
+    vec3 in_unit_sphere = random_in_unit_sphere();
+    if (dot(in_unit_sphere, normal) > 0.0) // In the same hemisphere as the normal
+        return in_unit_sphere;
+    else
+        return -in_unit_sphere;
+}
+
+color ray_color(const ray& r, hitable* world) {
   float EPSILON = 0.001; //to ignore hits very near zero
   hit_record rec;
   if (world->hit(r, EPSILON, FLT_MAX, rec)) {
 //    return 0.5 * vec3(rec.normal.x()+1, rec.normal.y()+1, rec.normal.z()+1); //visualize surface normal
-    vec3 target = rec.p + rec.normal + random_in_unit_sphere();
-    return 0.5 * color(ray(rec.p, target - rec.p), world);
+    vec3 target = rec.p + random_in_hemisphere(rec.normal);
+    return 0.5 * ray_color(ray(rec.p, target - rec.p), world);
   }
   else {
     vec3 unit_direction = unit_vector(r.direction());
     float t = 0.5 * (unit_direction.y() + 1.0); // -1.0 ~ 1.0 -> 0.0 ~ 1.0
-    return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3 (0.5, 0.7, 1.0); //lerp between white and blue
+    return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0); //lerp between white and blue
   }
 }
 
@@ -77,7 +85,7 @@ void raytrace_thread(int thread_id, int nx, int ny, int comp, int numsamples, ca
         float u = float(i + drand48()) / float(nx);
         float v = float(j + drand48()) / float(ny);
         ray r = cam->get_ray(u,v);
-        col += color(r, world);
+        col += ray_color(r, world);
       }
       col /= float(numsamples);
       col = vec3(sqrt(col[0]), sqrt(col[1]), sqrt(col[2])); //gamma correct

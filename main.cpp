@@ -1,14 +1,26 @@
+#ifdef _MSC_VER 
+#ifdef _CRT_SECURE_NO_WARNINGS
+#undef _CRT_SECURE_NO_WARNINGS
+#endif
+#define _CRT_SECURE_NO_WARNINGS 1
+#endif
+
 #include <iostream>
 #include "sphere.h"
 #include "triangle.h"
 #include "hitable_list.h"
 #include "camera.h"
 #include "stb_image_write.h"
-#include "float.h"
-#include "stdlib.h"
+#include <cfloat> //for FLT_MAX
+#include <cstdlib>
+#include <thread>
+#include <random>
 
+
+static std::uniform_real_distribution<double> distribution(0.0, 1.0); // [0.0, 1.0)
 double drand48() {
-  return (double)rand() / RAND_MAX;
+    static thread_local std::mt19937 generator;
+    return distribution(generator);
 }
 
 void write_to_png(int nx, int ny, int comp, void* data) {
@@ -40,7 +52,7 @@ vec3 color(const ray& r, hitable* world) {
   float EPSILON = 0.001; //to ignore hits very near zero
   hit_record rec;
   if (world->hit(r, EPSILON, FLT_MAX, rec)) {
-//    return 0.5 * vec3(rec.normal.x()+1, rec.normal.y()+1, rec.normal.z()+1);
+//    return 0.5 * vec3(rec.normal.x()+1, rec.normal.y()+1, rec.normal.z()+1); //visualize surface normal
     vec3 target = rec.p + rec.normal + random_in_unit_sphere();
     return 0.5 * color(ray(rec.p, target - rec.p), world);
   }
@@ -51,27 +63,20 @@ vec3 color(const ray& r, hitable* world) {
   }
 }
 
-int main() {
-  int nx = 200;
-  int ny = 100;
-  int numsamples = 100;
-  int comp = 3; //RGB
-  unsigned char* data = new unsigned char[nx * ny * comp];
-  unsigned char* p = data;
+static int num_threads = 1;
 
-  hitable* list[3];
-  list[0] = new sphere(vec3(0,0,-1), 0.5);
-  list[1] = new sphere(vec3(0,-100.5,-1), 1);
-  list[2] = new triangle(vec3(0,-0.5,0), vec3(0,-0.5,-2), vec3(1,-0.5,0), vec3(0,1,0));
-  hitable* world = new hitable_list(list, 3);
-  camera cam;
+void raytrace_thread(int thread_id, int nx, int ny, int comp, int numsamples, camera* cam, hitable* world, unsigned char* p) {
   for (int j = ny - 1; j >= 0; j--) {
+    if (j % num_threads != thread_id) {
+      p += nx * comp; // go to next row
+      continue;
+    }
     for (int i = 0 ;i < nx; i++ ) {
       vec3 col(0,0,0);
       for (int s = 0; s < numsamples; s++) {
         float u = float(i + drand48()) / float(nx);
         float v = float(j + drand48()) / float(ny);
-        ray r = cam.get_ray(u,v);
+        ray r = cam->get_ray(u,v);
         col += color(r, world);
       }
       col /= float(numsamples);
@@ -84,9 +89,46 @@ int main() {
       *p++ = (unsigned char)ib;
     }
   }
+}
 
-  output_ppm(nx, ny, data);
+
+int main( int argc, char *argv[]) {
+  const char* numcpus_env = getenv("NUMBER_OF_PROCESSORS"); //Windows
+  if (numcpus_env) {
+    num_threads = atoi(numcpus_env);
+  }
+  std::cout << "number of cpus detected:" << num_threads << '\n';
+
+
+  int nx = 400;
+  int ny = 200;
+  int numsamples = 100;
+  int comp = 3; //RGB
+  unsigned char* data = new unsigned char[nx * ny * comp];
+  unsigned char* p = data;
+
+  int num_objects = 2;
+  hitable** list = new hitable*[num_objects];
+  list[0] = new sphere(vec3(0,0,-1), 0.5);
+  list[1] = new sphere(vec3(0,-100.5,-1), 100);
+//  list[2] = new triangle(vec3(0,-0.5,0), vec3(0,-0.5,-2), vec3(1,-0.5,0), vec3(0,1,0));
+  hitable* world = new hitable_list(list, num_objects);
+  camera cam;
+
+  std::thread *threads = new std::thread[num_threads];
+  for (int i = 0; i < num_threads; ++i) {
+    threads[i] = std::thread(raytrace_thread, i, nx, ny, comp, numsamples, &cam, world, p);
+  }
+
+  //Join the threads with the main thread
+  for (int i = 0; i < num_threads; ++i) {
+    threads[i].join();
+  }
+
+//  output_ppm(nx, ny, data);
   write_to_png(nx, ny, comp, data);
 
+  delete[] threads;
   delete[] data;
+  return 0;
 }

@@ -100,18 +100,20 @@ int main( int argc, char *argv[]) {
   std::cout << "number of cpus detected:" << num_threads << '\n';
 
 
-  int nx = 400;
-  int ny = 200;
-  int numsamples = 100;
+  int nx = 200;
+  int ny = 100;
+  int numsamples = 16;
   int comp = 3; //RGB
   unsigned char* data = new unsigned char[nx * ny * comp];
   unsigned char* p = data;
 
-  int num_objects = 2;
+  int num_objects = 4971;
   hitable** list = new hitable*[num_objects];
-  list[0] = new sphere(vec3(0,0,-1), 0.5);
+//  list[0] = new sphere(vec3(0,0,-1), 0.5);
+  list[0] = new sphere(vec3(0,0,-1), 0.000001);
   list[1] = new sphere(vec3(0,-100.5,-1), 100);
-//  list[2] = new triangle(vec3(0,-0.5,0), vec3(0,-0.5,-2), vec3(1,-0.5,0), vec3(0,1,0));
+  list[2] = new triangle(vec3(0,-0.5,0), vec3(0,-0.5,-2), vec3(1,-0.5,0), vec3(0,1,0));
+#include "bunny.h"
   hitable* world = new hitable_list(list, num_objects);
   camera cam;
 

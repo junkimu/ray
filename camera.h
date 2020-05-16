@@ -5,7 +5,8 @@
 class camera {
     public:
         camera():
-            m_origin(0.0, 0.0, 0.0),
+//            m_origin(0.0, 0.0, 0.0),
+            m_origin(0.0, 0.0, 0.25),
             m_lowerleft(-2.0, -1.0, -1.0),
             m_horizontal(4.0, 0.0, 0.0),
             m_vertical(0.0, 2.0, 0.0) {}

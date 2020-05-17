@@ -11,4 +11,4 @@ IF NOT EXIST ray.exe (
   PAUSE
   EXIT /B 1
 )
-ray.exe
+ray.exe > output.ppm

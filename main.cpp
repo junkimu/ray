@@ -14,14 +14,6 @@
 #include "camera.h"
 #include "stb_image_write.h"
 #include <thread>
-#include <random>
-
-
-static std::uniform_real_distribution<double> distribution(0.0, 1.0); // [0.0, 1.0)
-double drand48() {
-    static thread_local std::mt19937 generator;
-    return distribution(generator);
-}
 
 void write_to_png(int nx, int ny, int comp, void* data) {
   int stride_in_bytes = comp * nx;
@@ -40,40 +32,27 @@ void output_ppm(int nx, int ny, void* data) {
   }
 }
 
-vec3 random_in_unit_sphere() {
-  vec3 p;
-  do {
-    p = 2.0 * vec3(drand48(),drand48(),drand48()) - vec3(1,1,1);
-  } while (p.squared_length() >= 1.0);
-  return p;
-}
-
-vec3 random_in_hemisphere(const vec3& normal) {
-    vec3 in_unit_sphere = random_in_unit_sphere();
-    if (dot(in_unit_sphere, normal) > 0.0) // In the same hemisphere as the normal
-        return in_unit_sphere;
-    else
-        return -in_unit_sphere;
-}
-
-color ray_color(const ray& r, hittable* world) {
-  float EPSILON = 0.001; //to ignore hits very near zero
-  hit_record rec;
-  if (world->hit(r, EPSILON, infinity, rec)) {
-//    return 0.5 * vec3(rec.normal.x()+1, rec.normal.y()+1, rec.normal.z()+1); //visualize surface normal
-    vec3 target = rec.p + random_in_hemisphere(rec.normal);
-    return 0.5 * ray_color(ray(rec.p, target - rec.p), world);
-  }
-  else {
-    vec3 unit_direction = unit_vector(r.direction());
-    float t = 0.5 * (unit_direction.y() + 1.0); // -1.0 ~ 1.0 -> 0.0 ~ 1.0
-    return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0); //lerp between white and blue
-  }
+color ray_color(const ray& r, hittable* world, int depth) {
+    float EPSILON = 0.001f; //to ignore hits very near zero
+    hit_record rec;
+    // If we've exceeded the ray bounce limit, no more light is gathered.
+    if (depth <= 0)
+        return color(0,0,0);
+    if (world->hit(r, EPSILON, infinity, rec)) {
+    //    return 0.5 * vec3(rec.normal.x()+1, rec.normal.y()+1, rec.normal.z()+1); //visualize surface normal
+      vec3 target = rec.p + random_in_hemisphere(rec.normal);
+      return 0.5 * ray_color(ray(rec.p, target - rec.p), world, depth-1);
+    }
+    else {
+      vec3 unit_direction = unit_vector(r.direction());
+      float t = 0.5f * (unit_direction.y() + 1.0f); // -1.0 ~ 1.0 -> 0.0 ~ 1.0
+      return (1.0f - t) * color(1.0f, 1.0f, 1.0f) + t * color(0.5f, 0.7f, 1.0f); //lerp between white and blue
+    }
 }
 
 static int num_threads = 1;
 
-void raytrace_thread(int thread_id, int nx, int ny, int comp, int numsamples, camera* cam, hittable* world, unsigned char* p) {
+void raytrace_thread(int thread_id, int nx, int ny, int comp, int numsamples, camera* cam, hittable* world, unsigned char* p, int maxdepth) {
   for (int j = ny - 1; j >= 0; j--) {
     if (j % num_threads != thread_id) {
       p += nx * comp; // go to next row
@@ -82,16 +61,16 @@ void raytrace_thread(int thread_id, int nx, int ny, int comp, int numsamples, ca
     for (int i = 0 ;i < nx; i++ ) {
       vec3 col(0,0,0);
       for (int s = 0; s < numsamples; s++) {
-        float u = float(i + drand48()) / float(nx);
-        float v = float(j + drand48()) / float(ny);
+        float u = float(i + random_float()) / float(nx);
+        float v = float(j + random_float()) / float(ny);
         ray r = cam->get_ray(u,v);
-        col += ray_color(r, world);
+        col += ray_color(r, world, maxdepth);
       }
       col /= float(numsamples);
       col = vec3(sqrt(col[0]), sqrt(col[1]), sqrt(col[2])); //gamma correct
-      int ir = int(255.99 * col[0]);
-      int ig = int(255.99 * col[1]);
-      int ib = int(255.99 * col[2]);
+      int ir = static_cast<int>(256 * clamp(col[0], 0.0f, 0.999f));
+      int ig = static_cast<int>(256 * clamp(col[1], 0.0f, 0.999f));
+      int ib = static_cast<int>(256 * clamp(col[2], 0.0f, 0.999f));
       *p++ = (unsigned char)ir;
       *p++ = (unsigned char)ig;
       *p++ = (unsigned char)ib;
@@ -101,39 +80,45 @@ void raytrace_thread(int thread_id, int nx, int ny, int comp, int numsamples, ca
 
 
 int main( int argc, char *argv[]) {
+  (void)argc;
+  (void)argv;
+
   const char* numcpus_env = getenv("NUMBER_OF_PROCESSORS"); //Windows
   if (numcpus_env) {
     num_threads = atoi(numcpus_env);
   }
-  std::cout << "number of cpus detected:" << num_threads << '\n';
+  std::cerr << "number of cpus detected:" << num_threads << '\n';
 
-
+  const auto aspect_ratio = 16.0f / 9.0f;
   int nx = 400;
-  int ny = 200;
+  int ny = static_cast<int>(nx / aspect_ratio);
   int numsamples = 100;
   int comp = 3; //RGB
   unsigned char* data = new unsigned char[nx * ny * comp];
   unsigned char* p = data;
+  const int max_depth = 50;
 
-  int num_objects = 2;
-  hittable** list = new hittable*[num_objects];
-  list[0] = new sphere(vec3(0,0,-1), 0.5);
-  list[1] = new sphere(vec3(0,-100.5,-1), 100);
-//  list[2] = new triangle(vec3(0,-0.5,0), vec3(0,-0.5,-2), vec3(1,-0.5,0), vec3(0,1,0));
-  hittable* world = new hittable_list(list, num_objects);
+  hittable_list world;
+  world.add(make_shared<sphere>(vec3(0.0f, 0.0f ,-1.0f), 0.5f));
+  world.add(make_shared<sphere>(vec3(0.0f,-100.5f,-1.0f), 100.0f));
+//  world.add(make_shared<triangle>(vec3(0,-0.5,0), vec3(0,-0.5,-2), vec3(1,-0.5,0), vec3(0,1,0)));
+
   camera cam;
 
+  std::cerr << "spawning " << num_threads << " threads \n";
   std::thread *threads = new std::thread[num_threads];
   for (int i = 0; i < num_threads; ++i) {
-    threads[i] = std::thread(raytrace_thread, i, nx, ny, comp, numsamples, &cam, world, p);
+    threads[i] = std::thread(raytrace_thread, i, nx, ny, comp, numsamples, &cam, &world, p, max_depth);
   }
 
+  std::cerr << "waiting for " << num_threads << " threads \n";
   //Join the threads with the main thread
   for (int i = 0; i < num_threads; ++i) {
     threads[i].join();
   }
 
-//  output_ppm(nx, ny, data);
+  std::cerr << "writing results\n";
+  output_ppm(nx, ny, data);
   write_to_png(nx, ny, comp, data);
 
   delete[] threads;

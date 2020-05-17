@@ -4,15 +4,24 @@
 
 class camera {
     public:
-        camera():
-            m_origin(0.0, 0.0, 0.0),
-            m_lowerleft(-2.0, -1.0, -1.0),
-            m_horizontal(4.0, 0.0, 0.0),
-            m_vertical(0.0, 2.0, 0.0) {}
-        ray get_ray(float x, float y) {return ray(m_origin, m_lowerleft + x * m_horizontal + y * m_vertical - m_origin);}
+        camera() {
+            auto aspect_ratio = 16.0f / 9.0f;
+            auto viewport_height = 2.0f;
+            auto viewport_width = aspect_ratio * viewport_height;
+            auto focal_length = 1.0f;
 
-        vec3 m_origin;
-        vec3 m_lowerleft;
-        vec3 m_horizontal;
-        vec3 m_vertical;
+            origin = point3(0.0f, 0.0f, 0.0f);
+            horizontal = vec3(viewport_width, 0.0f, 0.0f);
+            vertical = vec3(0.0f, viewport_height, 0.0f);
+            lower_left_corner = origin - horizontal/2 - vertical/2 - vec3(0.0f, 0.0f, focal_length); 
+        }
+
+        ray get_ray(float u, float v) const {
+            return ray(origin, lower_left_corner + u * horizontal + v * vertical - origin);
+        }
+
+        vec3 origin;
+        vec3 lower_left_corner;
+        vec3 horizontal;
+        vec3 vertical;
 };

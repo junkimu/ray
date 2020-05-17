@@ -28,10 +28,18 @@ public:
     inline vec3& operator/=(const float t);
 
     inline float length() const {
-        return sqrt(this->squared_length());
+        return sqrt(this->length_squared());
     }    
-    inline float squared_length() const {
+    inline float length_squared() const {
         return e[0]*e[0] + e[1]*e[1] + e[2]*e[2];
+    }
+
+    inline static vec3 random() {
+        return vec3(random_float(), random_float(), random_float());
+    }
+
+    inline static vec3 random(float min, float max) {
+        return vec3(random_float(min,max), random_float(min,max), random_float(min,max));
     }
 
     inline void make_unit_vector();
@@ -53,7 +61,7 @@ inline std::ostream& operator<<(std::ostream& os, vec3& t) {
 }
 
 inline void vec3::make_unit_vector() {
-    float k = 1.0 / this->length();
+    float k = 1.0f / this->length();
     e[0] *= k; e[1] *= k; e[2] *= k; 
 }
 
@@ -142,4 +150,20 @@ inline vec3& vec3::operator/=(const float t) {
  
 inline vec3 unit_vector(const vec3& v) {
     return v / v.length();
+}
+
+vec3 random_in_unit_sphere() {
+  vec3 p;
+  do {
+    p = 2.0f * vec3(random_float(),random_float(),random_float()) - vec3(1.0f,1.0f,1.0f);
+  } while (p.length_squared() >= 1.0);
+  return p;
+}
+
+vec3 random_in_hemisphere(const vec3& normal) {
+    vec3 in_unit_sphere = random_in_unit_sphere();
+    if (dot(in_unit_sphere, normal) > 0.0) // In the same hemisphere as the normal
+        return in_unit_sphere;
+    else
+        return -in_unit_sphere;
 }

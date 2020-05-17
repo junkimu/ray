@@ -6,12 +6,13 @@
 #endif
 
 #include "rtweekend.h"
-
+#include "color.h"
+#include "camera.h"
 #include "hittable_list.h"
+#include "material.h"
 #include "sphere.h"
 #include "triangle.h"
 #include <iostream>
-#include "camera.h"
 #include "stb_image_write.h"
 #include <thread>
 
@@ -38,10 +39,14 @@ color ray_color(const ray& r, hittable* world, int depth) {
     // If we've exceeded the ray bounce limit, no more light is gathered.
     if (depth <= 0)
         return color(0,0,0);
+
     if (world->hit(r, EPSILON, infinity, rec)) {
     //    return 0.5 * vec3(rec.normal.x()+1, rec.normal.y()+1, rec.normal.z()+1); //visualize surface normal
-      vec3 target = rec.p + random_in_hemisphere(rec.normal);
-      return 0.5 * ray_color(ray(rec.p, target - rec.p), world, depth-1);
+      ray scattered;
+      color attenuation;
+      if (rec.mat_ptr->scatter(r, rec, attenuation, scattered))
+        return attenuation * ray_color(scattered, world, depth-1);
+      return color(0.0f, 0.0f, 0.0f);
     }
     else {
       vec3 unit_direction = unit_vector(r.direction());
@@ -99,9 +104,21 @@ int main( int argc, char *argv[]) {
   const int max_depth = 50;
 
   hittable_list world;
-  world.add(make_shared<sphere>(vec3(0.0f, 0.0f ,-1.0f), 0.5f));
-  world.add(make_shared<sphere>(vec3(0.0f,-100.5f,-1.0f), 100.0f));
-//  world.add(make_shared<triangle>(vec3(0,-0.5,0), vec3(0,-0.5,-2), vec3(1,-0.5,0), vec3(0,1,0)));
+  world.add(make_shared<sphere>(
+    point3(0.0f, 0.0f ,-1.0f), 0.5f, make_shared<lambertian>(color(0.7f, 0.3f, 0.3f))));
+  world.add(make_shared<sphere>(
+    point3(0.0f,-100.5f,-1.0f), 100.0f, make_shared<lambertian>(color(0.8f, 0.8f, 0.0f))));
+  world.add(make_shared<sphere>(
+    point3(1.0f,0.0f,-1.0f), 0.5f, make_shared<metal>(color(0.8f, 0.6f, 0.2f), 1.0f)));
+  world.add(make_shared<sphere>(
+    point3(-1.0f,0.0f,-1.0f), 0.5f, make_shared<metal>(color(0.8f, 0.8f, 0.8f), 0.3f)));
+
+/*
+  world.add(make_shared<triangle>(
+    vec3(0,-0.5,0), vec3(0,-0.5,-2), vec3(1,-0.5,0), vec3(0,1,0),make_shared<lambertian>(color(0.3f, 0.3f, 0.7f))));
+  world.add(make_shared<triangle>(
+    vec3(0,-0.5,0), vec3(0,-0.5,-2), vec3(-1,-0.5,0), vec3(0,1,0),make_shared<metal>(color(0.3f, 0.3f, 0.7f),0.0f)));
+*/
 
   camera cam;
 

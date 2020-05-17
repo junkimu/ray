@@ -5,14 +5,20 @@
 class triangle: public hittable {
     public:
         triangle() {}
-        triangle(vec3 v0, vec3 v1, vec3 v2, vec3 normal): m_vertex0(v0), m_vertex1(v1), m_vertex2(v2), m_normal(normal) {
+        triangle(vec3 v0, vec3 v1, vec3 v2, vec3 normal, shared_ptr<material> m)
+            : m_vertex0(v0), m_vertex1(v1), m_vertex2(v2), m_normal(normal), mat_ptr(m) {
             m_normal.make_unit_vector();
         }
+
         virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const;
+
+    public:
         vec3 m_vertex0;
         vec3 m_vertex1;
         vec3 m_vertex2;
         vec3 m_normal;
+        shared_ptr<material> mat_ptr;
+ 
     private:
         bool  moller_trumbore(const ray& r, float* t_out) const;
 };
@@ -60,7 +66,8 @@ bool triangle::hit(const ray& r, float t_min, float t_max, hit_record& rec) cons
         if (t < t_max && t > t_min) {
             rec.t = t;
             rec.p = r.at(rec.t);
-            rec.normal = m_normal;
+            rec.set_face_normal(r, m_normal);
+            rec.mat_ptr = mat_ptr;
             return true;
         }
     }

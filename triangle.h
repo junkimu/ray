@@ -1,8 +1,8 @@
 #pragma once
 
-#include "hitable.h"
+#include "hittable.h"
 
-class triangle: public hitable {
+class triangle: public hittable {
     public:
         triangle() {}
         triangle(vec3 v0, vec3 v1, vec3 v2, vec3 normal): m_vertex0(v0), m_vertex1(v1), m_vertex2(v2), m_normal(normal) {

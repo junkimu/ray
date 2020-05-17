@@ -5,14 +5,14 @@
 #define _CRT_SECURE_NO_WARNINGS 1
 #endif
 
-#include <iostream>
+#include "rtweekend.h"
+
+#include "hittable_list.h"
 #include "sphere.h"
 #include "triangle.h"
-#include "hitable_list.h"
+#include <iostream>
 #include "camera.h"
 #include "stb_image_write.h"
-#include <cfloat> //for FLT_MAX
-#include <cstdlib>
 #include <thread>
 #include <random>
 
@@ -56,10 +56,10 @@ vec3 random_in_hemisphere(const vec3& normal) {
         return -in_unit_sphere;
 }
 
-color ray_color(const ray& r, hitable* world) {
+color ray_color(const ray& r, hittable* world) {
   float EPSILON = 0.001; //to ignore hits very near zero
   hit_record rec;
-  if (world->hit(r, EPSILON, FLT_MAX, rec)) {
+  if (world->hit(r, EPSILON, infinity, rec)) {
 //    return 0.5 * vec3(rec.normal.x()+1, rec.normal.y()+1, rec.normal.z()+1); //visualize surface normal
     vec3 target = rec.p + random_in_hemisphere(rec.normal);
     return 0.5 * ray_color(ray(rec.p, target - rec.p), world);
@@ -73,7 +73,7 @@ color ray_color(const ray& r, hitable* world) {
 
 static int num_threads = 1;
 
-void raytrace_thread(int thread_id, int nx, int ny, int comp, int numsamples, camera* cam, hitable* world, unsigned char* p) {
+void raytrace_thread(int thread_id, int nx, int ny, int comp, int numsamples, camera* cam, hittable* world, unsigned char* p) {
   for (int j = ny - 1; j >= 0; j--) {
     if (j % num_threads != thread_id) {
       p += nx * comp; // go to next row
@@ -116,11 +116,11 @@ int main( int argc, char *argv[]) {
   unsigned char* p = data;
 
   int num_objects = 2;
-  hitable** list = new hitable*[num_objects];
+  hittable** list = new hittable*[num_objects];
   list[0] = new sphere(vec3(0,0,-1), 0.5);
   list[1] = new sphere(vec3(0,-100.5,-1), 100);
 //  list[2] = new triangle(vec3(0,-0.5,0), vec3(0,-0.5,-2), vec3(1,-0.5,0), vec3(0,1,0));
-  hitable* world = new hitable_list(list, num_objects);
+  hittable* world = new hittable_list(list, num_objects);
   camera cam;
 
   std::thread *threads = new std::thread[num_threads];

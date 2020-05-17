@@ -1,17 +1,17 @@
 #pragma once
 
-#include "hitable.h"
+#include "hittable.h"
 
-class hitable_list: public hitable {
+class hittable_list: public hittable {
     public:
-        hitable_list() {}
-        hitable_list(hitable** l, int n) : m_list(l), m_size(n) {}
+        hittable_list() {}
+        hittable_list(hittable** l, int n) : m_list(l), m_size(n) {}
         virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const;
-        hitable** m_list;
+        hittable** m_list;
         int m_size;
 };
 
-bool hitable_list::hit(const ray& r, float t_min, float t_max, hit_record& rec) const {
+bool hittable_list::hit(const ray& r, float t_min, float t_max, hit_record& rec) const {
     hit_record temp_rec;
     bool hit_anything = false;
     double closest_so_far = t_max;

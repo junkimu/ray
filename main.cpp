@@ -5,6 +5,11 @@
 #define _CRT_SECURE_NO_WARNINGS 1
 #endif
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#ifdef _MSC_VER
+#define STBI_MSC_SECURE_CRT
+#endif
+
 #include "rtweekend.h"
 #include "color.h"
 #include "camera.h"
@@ -105,13 +110,15 @@ int main( int argc, char *argv[]) {
 
   hittable_list world;
   world.add(make_shared<sphere>(
-    point3(0.0f, 0.0f ,-1.0f), 0.5f, make_shared<lambertian>(color(0.7f, 0.3f, 0.3f))));
+    point3(0.0f, 0.0f ,-1.0f), 0.5f, make_shared<lambertian>(color(0.1f, 0.2f, 0.5f))));
   world.add(make_shared<sphere>(
     point3(0.0f,-100.5f,-1.0f), 100.0f, make_shared<lambertian>(color(0.8f, 0.8f, 0.0f))));
   world.add(make_shared<sphere>(
-    point3(1.0f,0.0f,-1.0f), 0.5f, make_shared<metal>(color(0.8f, 0.6f, 0.2f), 1.0f)));
+    point3(1.0f,0.0f,-1.0f), 0.5f, make_shared<metal>(color(0.8f, 0.6f, 0.2f), 0.3f)));
   world.add(make_shared<sphere>(
-    point3(-1.0f,0.0f,-1.0f), 0.5f, make_shared<metal>(color(0.8f, 0.8f, 0.8f), 0.3f)));
+    point3(-1.0f,0.0f,-1.0f), 0.5f, make_shared<dielectric>(1.5f)));
+  world.add(make_shared<sphere>(
+    point3(-1.0f,0.0f,-1.0f), -0.45f, make_shared<dielectric>(1.5f)));
 
 /*
   world.add(make_shared<triangle>(
@@ -135,7 +142,7 @@ int main( int argc, char *argv[]) {
   }
 
   std::cerr << "writing results\n";
-  output_ppm(nx, ny, data);
+//  output_ppm(nx, ny, data);
   write_to_png(nx, ny, comp, data);
 
   delete[] threads;

@@ -127,7 +127,7 @@ int main( int argc, char *argv[]) {
     vec3(0,-0.5,0), vec3(0,-0.5,-2), vec3(-1,-0.5,0), vec3(0,1,0),make_shared<metal>(color(0.3f, 0.3f, 0.7f),0.0f)));
 */
 
-  camera cam;
+  camera cam(point3(-2,2,1), point3(0,0,-1), vec3(0,1,0), 20, aspect_ratio);
 
   std::cerr << "spawning " << num_threads << " threads \n";
   std::thread *threads = new std::thread[num_threads];

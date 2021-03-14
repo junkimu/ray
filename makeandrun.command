@@ -1,3 +1,5 @@
-#!/bin/bash
+#!/bin/zsh
+NUMBER_OF_PROCESSORS=`sysctl -n hw.ncpu`
+export NUMBER_OF_PROCESSORS
 
-cc stb_image_write.cpp main.cpp -o ray -lc++ && ./ray > output.ppm
+clang -std=c++17 stb_image_write.cpp main.cpp -o ray -lc++ && time ./ray

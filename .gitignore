@@ -4,6 +4,11 @@
 *.[oa]
 *.obj
 
+#CMake
+CMakeCache.txt
+cmake_install.cmake
+CMakeFiles/
+
 #ignore main executable
 ray
 ray.exe
